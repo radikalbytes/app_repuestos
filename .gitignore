@@ -10,3 +10,6 @@ npm-debug.log*
 
 xAI.py
 
+# Logs locales
+broken-json.log
+
