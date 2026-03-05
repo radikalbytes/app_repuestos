@@ -1,0 +1,26 @@
+{
+  "name": "app_repuestos",
+  "version": "1.0.0",
+  "description": "Aplicación para analizar listados de repuestos electrónicos a partir de imágenes usando la API de ChatGPT.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"Error: no test especificado\" && exit 1"
+  },
+  "keywords": [
+    "angularjs",
+    "express",
+    "openai",
+    "vision",
+    "repuestos"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "node-fetch": "^2.7.0"
+  }
+}

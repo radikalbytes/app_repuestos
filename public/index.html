@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es" ng-app="imageAnalyzerApp">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Analizador de repuestos - Paso 1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <!-- AngularJS (angular.js) desde CDN -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
+    <script src="app.js"></script>
+  </head>
+  <body ng-controller="ImageUploadController as vm">
+    <div class="app-container">
+      <header>
+        <h1>Analizador de repuestos electrónicos</h1>
+        <p class="subtitle">
+          Paso 1: sube un lote de imágenes con el listado de referencias y obtén el
+          listado estructurado de elementos.
+        </p>
+      </header>
+
+      <section class="card">
+        <h2>1. Cargar imágenes</h2>
+        <p>Selecciona una o varias imágenes que contengan el listado de repuestos.</p>
+
+        <label class="upload-button">
+          <span>Seleccionar imágenes</span>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onchange="angular.element(this).scope().vm.onFilesSelected(this.files)"
+          />
+        </label>
+
+        <div class="preview-container" ng-if="vm.images.length > 0">
+          <h3>Imágenes seleccionadas ({{ vm.images.length }})</h3>
+          <div class="preview-grid">
+            <div
+              class="preview-item"
+              ng-class="{ 'preview-item--active': vm.selectedImage === image }"
+              ng-repeat="image in vm.images track by $index"
+              ng-click="vm.selectImage(image)"
+            >
+              <img ng-src="{{ image.dataUrl }}" alt="{{ image.name }}" />
+              <div class="preview-name" title="{{ image.name }}">
+                {{ image.name }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          class="primary-button"
+          ng-disabled="vm.isAnalyzing || vm.images.length === 0"
+          ng-click="vm.analyzeImages()"
+        >
+          {{ vm.isAnalyzing ? 'Analizando imágenes...' : 'Analizar imágenes con ChatGPT' }}
+        </button>
+
+        <button
+          class="primary-button secondary"
+          style="margin-left: 0.5rem"
+          ng-disabled="vm.isAnalyzing || vm.images.length === 0"
+          ng-click="vm.analyzeImagesWithXai()"
+        >
+          Analizar imágenes con xAI
+        </button>
+
+        <p class="error" ng-if="vm.errorMessage">
+          {{ vm.errorMessage }}
+        </p>
+      </section>
+
+      <section class="card" ng-if="vm.rows.length > 0">
+        <h2>
+          2. Listado detectado (Paso 1) - Líneas: {{ vm.rows.length }} - Elementos
+          totales: {{ vm.rows.length }}
+        </h2>
+        <p>
+          A continuación se muestra el listado de elementos extraído de todas las imágenes.
+          Las columnas se muestran de forma posicional (Columna 1, Columna 2, ...).
+        </p>
+
+        <div class="table-wrapper">
+          <table>
+            <tbody>
+              <tr ng-repeat="row in vm.rows track by $index">
+                <td ng-repeat="idx in vm.columnIndices">
+                  {{ row[idx] || '-' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button
+          class="primary-button secondary"
+          type="button"
+          ng-click="vm.openStep2()"
+        >
+          Ir a Paso 2: selección de campos
+        </button>
+      </section>
+
+      <section class="card" ng-if="vm.step2Active && vm.rows.length > 0">
+        <h2>3. Selección de campos (Paso 2)</h2>
+        <p>
+          Asigna los campos detectados a los 4 campos de salida. En los campos
+          Referencia y Descripción puedes concatenar el contenido de dos columnas.
+        </p>
+
+        <div class="mapping-grid">
+          <div
+            class="mapping-row"
+            ng-repeat="target in vm.targetFields track by target.key"
+          >
+            <div class="mapping-title">
+              {{ target.label }}
+            </div>
+            <div class="mapping-controls">
+              <label>
+                Campo principal
+                <select
+                  ng-model="vm.mappingConfig[target.key].field1"
+                  ng-options="idx as ('Columna ' + (idx + 1)) for idx in vm.columnIndices"
+                >
+                  <option value="">-- Sin asignar --</option>
+                </select>
+              </label>
+
+              <label ng-if="target.key === 'Descripcion' || target.key === 'Referencia'">
+                Campo a concatenar (opcional)
+                <select
+                  ng-model="vm.mappingConfig[target.key].field2"
+                  ng-options="idx as ('Columna ' + (idx + 1)) for idx in vm.columnIndices"
+                >
+                  <option value="">-- Ninguno --</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <button
+          class="primary-button"
+          type="button"
+          ng-disabled="vm.isGenerating"
+          ng-click="vm.generateFinalList()"
+        >
+          {{ vm.isGenerating ? 'Generando listado final...' : 'Generar listado final' }}
+        </button>
+      </section>
+
+      <section class="card" ng-if="vm.step3Active && vm.finalItems.length > 0">
+        <h2>
+          4. Listado final (Paso 3) - Líneas: {{ vm.finalItems.length }} - Elementos
+          totales: {{ vm.getFinalTotalQuantity() }}
+        </h2>
+        <p>
+          Listado resultante en mayúsculas, con referencias Siemens normalizadas, descripciones
+          traducidas y referencias agrupadas sumando cantidades.
+        </p>
+
+        <div style="margin-bottom: 0.75rem">
+          <button
+            class="primary-button secondary"
+            type="button"
+            ng-click="vm.step3Active = false; vm.step2Active = true"
+          >
+            Volver al Paso 2
+          </button>
+
+          <button
+            class="primary-button"
+            type="button"
+            style="margin-left: 0.5rem"
+            ng-click="vm.generateStandardList()"
+          >
+            Generar listado estándar (Paso 4)
+          </button>
+
+          <button
+            class="primary-button secondary"
+            type="button"
+            style="margin-left: 0.5rem"
+            ng-click="vm.exportFinalCsv()"
+          >
+            Generar listado CSV
+          </button>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Referencia</th>
+                <th>Cantidad</th>
+                <th>Descripción</th>
+                <th>Fabricante</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="row in vm.finalItems track by $index">
+                <td>{{ row.Referencia }}</td>
+                <td>{{ row.Cantidad }}</td>
+                <td>{{ row.Descripcion }}</td>
+                <td>{{ row.Fabricante }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section
+        class="card"
+        ng-if="vm.standardHeaders.length > 0 && vm.standardRows.length > 0"
+      >
+        <h2>
+          5. Listado estándar - Líneas: {{ vm.standardRows.length }} - Elementos
+          totales: {{ vm.getStandardTotalQuantity() }}
+        </h2>
+        <p>
+          Listado final con la estructura estándar basada en el fichero WQ2599/WQ2959.
+        </p>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th ng-repeat="h in vm.standardHeaders">{{ h }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="row in vm.standardRows track by $index">
+                <td ng-repeat="h in vm.standardHeaders">
+                  {{ row[h] || '' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button
+          class="primary-button secondary"
+          type="button"
+          ng-click="vm.exportStandardCsv()"
+        >
+          Exportar listado estándar (CSV)
+        </button>
+      </section>
+    </div>
+
+    <!-- Ventana emergente de vista previa de imagen -->
+    <div
+      class="preview-modal-backdrop"
+      ng-if="vm.isPreviewOpen && vm.selectedImage"
+      ng-click="vm.closePreview()"
+    >
+      <div class="preview-modal" ng-click="$event.stopPropagation()">
+        <button
+          type="button"
+          class="preview-modal-close"
+          aria-label="Cerrar vista previa"
+          ng-click="vm.closePreview()"
+        >
+          ×
+        </button>
+        <h2>Vista previa de la imagen seleccionada</h2>
+        <p class="preview-modal-subtitle">
+          Haz clic fuera de la imagen o en la “×” para cerrar.
+        </p>
+        <div class="preview-large">
+          <img
+            ng-src="{{ vm.selectedImage.dataUrl }}"
+            alt="{{ vm.selectedImage.name }}"
+          />
+          <div class="preview-large-name">
+            {{ vm.selectedImage.name }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicador de progreso global -->
+    <div
+      class="global-loader-backdrop"
+      ng-if="vm.isAnalyzing || vm.isGenerating"
+    >
+      <div class="global-loader-card">
+        <div class="global-loader-spinner"></div>
+        <div class="global-loader-text">
+          <span ng-if="vm.isAnalyzing">
+            <span ng-if="vm.analysisPhase === 'analizando'">
+              Analizando imagen {{ vm.analysisCurrentIndex }} de
+              {{ vm.analysisTotal }}...
+            </span>
+            <span ng-if="vm.analysisPhase === 'listado'">
+              Generando listado {{ vm.analysisCurrentIndex }} de
+              {{ vm.analysisTotal }}...
+            </span>
+          </span>
+          <span ng-if="!vm.isAnalyzing && vm.isGenerating">
+            Generando listado final... Por favor, espera.
+          </span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
