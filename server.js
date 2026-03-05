@@ -84,6 +84,8 @@ function createServer() {
 
   // Servir archivos estáticos del frontend AngularJS desde la carpeta "public"
   app.use(express.static(path.join(__dirname, 'public')));
+  // Servir los recursos del logo desde la carpeta "logo"
+  app.use('/logo', express.static(path.join(__dirname, 'logo')));
 
   // **Descripción de la ruta POST /api/analyze-images**
   // Esta ruta recibe un lote de imágenes en base64 y devuelve un listado
