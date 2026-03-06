@@ -136,7 +136,10 @@
       // la referencia a la imagen seleccionada.
       //
       // No recibe parámetros.
-      vm.closePreview = function closePreview() {
+      vm.closePreview = function closePreview($event) {
+        if ($event && $event.stopPropagation) {
+          $event.stopPropagation();
+        }
         vm.isPreviewOpen = false;
       };
 

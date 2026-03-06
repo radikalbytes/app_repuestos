@@ -60,7 +60,7 @@
         </button>
 
         <button
-          class="primary-button secondary"
+          class="primary-button"
           style="margin-left: 0.5rem"
           ng-disabled="vm.isAnalyzing || vm.images.length === 0"
           ng-click="vm.analyzeImagesWithXai()"
@@ -275,6 +275,7 @@
           <img
             ng-src="{{ vm.selectedImage.dataUrl }}"
             alt="{{ vm.selectedImage.name }}"
+            ng-click="vm.closePreview($event)"
           />
           <div class="preview-large-name">
             {{ vm.selectedImage.name }}
